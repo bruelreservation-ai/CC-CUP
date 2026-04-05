@@ -163,6 +163,7 @@ footer { text-align:center; font-size:0.54rem; letter-spacing:4px; color:#ccc; p
   <div class="header-logo">CAST &amp; <span>CONQUER</span></div>
   <div class="header-sub">CC Cup · Lacs de la Forêt d'Orient</div>
   <div class="header-date" id="dateBadge">📅 ...</div>
+  <div id="syncStatus" style="font-size:0.58rem;letter-spacing:2px;color:#aaa;margin-top:6px;">🔄 Connexion...</div>
 </div>
 
 <div class="section-label">🏆 Classement saison</div>
@@ -227,6 +228,9 @@ footer { text-align:center; font-size:0.54rem; letter-spacing:4px; color:#ccc; p
 <footer>CC Cup · Cast &amp; Conquer · Saison 2025-2026</footer>
 </div>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
 var ANGLERS = [
   { id:0, name:'GUILLAUME', number:'#03', emoji:'🎣', hex:'#7ab8d4' },
@@ -269,10 +273,61 @@ function fresh() {
   };
 }
 
+var firebaseConfig = {
+  apiKey: "AIzaSyBEsGLjAefx-r6jZmrIugTqg5EB-BqrNbc",
+  authDomain: "cc-cup.firebaseapp.com",
+  databaseURL: "https://cc-cup-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "cc-cup",
+  storageBucket: "cc-cup.firebasestorage.app",
+  messagingSenderId: "894670560259",
+  appId: "1:894670560259:web:deecb4d4ce4646444e0236"
+};
+
+// Init Firebase
+firebase.initializeApp(firebaseConfig);
+var db = firebase.database();
+var dbRef = db.ref('cccup');
+
 var S = fresh();
-function save() { try { localStorage.setItem('cccup1', JSON.stringify(S)); } catch(e){} }
-function load() { try { var d=localStorage.getItem('cccup1'); if(d) S=JSON.parse(d); } catch(e){} }
-function getDay() { return S.days[S.currentDay]; }
+var saving = false;
+
+function save() {
+  if(saving) return;
+  saving = true;
+  // On ne sauvegarde pas les photos dans Firebase (trop lourd) — elles restent en localStorage
+  var toSave = {
+    currentDay: S.currentDay,
+    days: S.days.map(function(d){
+      return {
+        num: d.num,
+        date: d.date,
+        anglers: d.anglers
+      };
+    })
+  };
+  dbRef.set(toSave, function(){ saving = false; });
+}
+
+function savePhotos() {
+  try { localStorage.setItem('cccup_photos', JSON.stringify(S.photos)); } catch(e){}
+}
+
+function loadPhotos() {
+  try { var p=localStorage.getItem('cccup_photos'); if(p) S.photos=JSON.parse(p); } catch(e){}
+}
+
+// Écoute les changements Firebase en temps réel
+dbRef.on('value', function(snapshot) {
+  var data = snapshot.val();
+  if(data) {
+    S.currentDay = data.currentDay || 0;
+    S.days = data.days || [freshDay(1)];
+  }
+  loadPhotos();
+  render();
+});
+
+var statusEl = document.getElementById('syncStatus');
 
 function biggestSize(day, spId) {
   var min = SPECIES.find(function(s){ return s.id===spId; }).minSize;
@@ -372,7 +427,8 @@ function uploadPhoto(aid) {
       var size=120, scale=Math.min(size/img.width,size/img.height);
       canvas.width=img.width*scale; canvas.height=img.height*scale;
       canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-      S.photos[aid]=canvas.toDataURL('image/jpeg',0.8); save(); render();
+      S.photos[aid]=canvas.toDataURL('image/jpeg',0.8);
+      savePhotos(); render();
     };
     img.src=ev.target.result;
   };
@@ -517,15 +573,21 @@ function deleteDay(i) {
 
 function goDay(i) { S.currentDay=i; save(); render(); }
 
-load(); render();
+// Indicateur connexion Firebase
+db.ref('.info/connected').on('value', function(snap) {
+  var el = document.getElementById('syncStatus');
+  if(!el) return;
+  el.textContent = snap.val() ? '🟢 Synchronisé' : '🔴 Hors ligne';
+  el.style.color = snap.val() ? '#3a8a30' : '#c0431a';
+});
 
-document.getElementById('btnPrev').onclick=function(){ if(S.currentDay>0){S.currentDay--;save();render();} };
-document.getElementById('btnNext').onclick=function(){ if(S.currentDay<S.days.length-1){S.currentDay++;save();render();} };
+document.getElementById('btnPrev').onclick=function(){ if(S.currentDay>0){S.currentDay--;save();} };
+document.getElementById('btnNext').onclick=function(){ if(S.currentDay<S.days.length-1){S.currentDay++;save();} };
 document.getElementById('btnAddDay').onclick=function(){
   var num=S.days.length+1;
   S.days.push(freshDay(num));
   S.currentDay=S.days.length-1;
-  save(); render();
+  save();
 };
 </script>
 </body>
