@@ -419,7 +419,9 @@ function toggleBonus(aid) {
 
 function upBonusNote(aid, val) {
   getDay().anglers[aid].bonusNote = val;
-  saveToFirebase();
+  // On sauvegarde après un court délai sans re-render
+  clearTimeout(upBonusNote._t);
+  upBonusNote._t = setTimeout(function(){ saveToFirebase(); }, 800);
 }
 
 function deleteDay(i) {
