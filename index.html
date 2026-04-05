@@ -398,7 +398,8 @@ function upSize(aid, spId, val) {
   var prev = parseFloat(a.sizes[spId]) || 0;
   a.sizes[spId] = val;
   if(next > prev) a.sizets[spId] = Date.now();
-  saveToFirebase();
+
+  // Mise à jour visuelle sans render()
   var sp = SPECIES.filter(function(s){return s.id===spId;})[0];
   var mailed = next >= sp.minSize && next > 0;
   var bc = val ? (mailed ? '#5a9a5a' : '#c05050') : '#ddd';
@@ -409,7 +410,10 @@ function upSize(aid, spId, val) {
   var isWin = aid === (spId==='pike' ? pikeBest : perchBest) && mailed;
   var cr = document.getElementById('cr' + aid + spId);
   if(cr) cr.textContent = isWin ? '👑' : 'cm';
-  renderStandings(); renderGlobal(); renderCatchTable();
+
+  // Sauvegarde différée
+  clearTimeout(upSize._t);
+  upSize._t = setTimeout(function(){ saveToFirebase(); }, 800);
 }
 
 function toggleBonus(aid) {
