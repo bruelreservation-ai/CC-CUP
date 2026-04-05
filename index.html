@@ -59,7 +59,9 @@ body {
 .add-day-btn:active { background:#d8f0d8; }
 
 .day-dots { display:flex; gap:5px; flex-wrap:wrap; }
-.day-dot { min-width:32px; height:32px; border-radius:6px; border:1px solid #ddd; background:#f8f8f8; cursor:pointer; font-size:0.8rem; font-weight:700; color:#aaa; display:flex; align-items:center; justify-content:center; padding:0 6px; transition:all .15s; }
+.day-dot { min-width:36px; height:32px; border-radius:6px; border:1px solid #ddd; background:#f8f8f8; cursor:pointer; font-size:0.8rem; font-weight:700; color:#aaa; display:flex; align-items:center; justify-content:center; gap:3px; padding:0 6px; transition:all .15s; position:relative; }
+.dot-del { font-size:0.7rem; color:#ccc; font-weight:900; line-height:1; margin-left:2px; }
+.dot-del:hover { color:#c0431a; }
 .day-dot.active { border-color:#c0431a; color:#c0431a; background:rgba(192,67,26,0.08); }
 .day-dot.has-data { color:#555; border-color:#bbb; }
 
@@ -445,8 +447,9 @@ function render() {
 
   // dots
   document.getElementById('dayDots').innerHTML=S.days.map(function(d,i){
-    var active=i===S.currentDay, hd=dayHasData(i);
-    return '<div class="day-dot'+(active?' active':'')+(hd&&!active?' has-data':'')+'" onclick="goDay('+i+')">J'+d.num+'</div>';
+          var active=i===S.currentDay, hd=dayHasData(i);
+    return '<div class="day-dot'+(active?' active':'')+(hd&&!active?' has-data':'')+'" onclick="goDay('+i+')" onlongpress="deleteDay('+i+')">J'+d.num
+      +'<span class="dot-del" onclick="event.stopPropagation();deleteDay('+i+')" title="Supprimer">×</span></div>';
   }).join('');
 
   renderStandings(); renderGlobal(); renderCatchTable();
@@ -499,6 +502,17 @@ function render() {
       +'<input class="bonus-inp" type="text" placeholder="Décrire l\'action insolite…" value="'+angler.bonusNote+'" oninput="upBonusNote('+angler.id+',this.value)"/>'
       +'<button class="bonus-btn'+(angler.bonus?' on':'')+'" onclick="toggleBonus('+angler.id+')">⭐</button></div>';
   }).join('');
+}
+
+function deleteDay(i) {
+  if(S.days.length<=1){ alert('Impossible de supprimer le seul jour restant.'); return; }
+  var code=window.prompt('Tape SUPPRIMER pour confirmer la suppression du Jour '+S.days[i].num+' :');
+  if(!code||code.trim().toUpperCase()!=='SUPPRIMER') return;
+  S.days.splice(i,1);
+  // renuméroter
+  S.days.forEach(function(d,idx){ d.num=idx+1; });
+  if(S.currentDay>=S.days.length) S.currentDay=S.days.length-1;
+  save(); render();
 }
 
 function goDay(i) { S.currentDay=i; save(); render(); }
