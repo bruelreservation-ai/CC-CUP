@@ -243,9 +243,11 @@ function freshAngler(id) {
 }
 
 function freshDay(num) {
+  var d = new Date();
   return {
     num: num,
-    date: new Date().toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' }),
+    date: d.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' }),
+    dateISO: d.toISOString().split('T')[0],
     anglers: [ freshAngler(0), freshAngler(1), freshAngler(2) ]
   };
 }
@@ -302,7 +304,12 @@ function dayFromData(data, idx) {
     var saved = data.anglers ? data.anglers[id] : null;
     return anglerFromData(saved, id);
   });
-  return { num: data.num || (idx+1), date: data.date || '', anglers: anglers };
+  return {
+    num: data.num || (idx+1),
+    date: data.date || '',
+    dateISO: data.dateISO || '',
+    anglers: anglers
+  };
 }
 
 // ── SCORING ──
