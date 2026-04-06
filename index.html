@@ -269,6 +269,7 @@ function saveToFirebase() {
       return {
         num: d.num,
         date: d.date,
+        dateISO: d.dateISO || '',
         anglers: d.anglers.map(function(a) {
           return {
             id: a.id,
