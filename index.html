@@ -335,9 +335,13 @@ function totalFish(a) {
 }
 
 function volumeLeader(day) {
-  var max = 0, winner = -1;
-  day.anglers.forEach(function(a) { var t = totalFish(a); if(t > max) { max = t; winner = a.id; } });
-  return max > 0 ? winner : -1;
+  var max = 0, winner = -1, tie = false;
+  day.anglers.forEach(function(a) {
+    var t = totalFish(a);
+    if(t > max) { max = t; winner = a.id; tie = false; }
+    else if(t === max && t > 0) { tie = true; winner = -1; }
+  });
+  return tie ? -1 : winner;
 }
 
 function computeDayScores(day) {
